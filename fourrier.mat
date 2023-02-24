@@ -1,0 +1,81 @@
+clear all
+clc
+
+%% set some parameters
+
+Fs = 1000;            % Sampling frequency (in Hz)
+dt = 1/Fs;             % Sampling period (in s)
+N = 1000;             % Number of measured points
+t = (0:N-1)*dt;        % corresponding time interval
+
+
+
+%% generate signal
+
+S = 0.7*sin(2*pi*50*t) + sin(2*pi*120*t);  % "ideal" signal with two frequencies (50 Hz and 120 Hz)
+
+X=S + randn(size(t));  % add random noise (of amplitude 1 - a rather strong noise!)
+
+X=X.*exp(-(t-N/2*dt).^2/0.2^2); % mimic a finite duration pulse
+
+figure           % plot "ideal" signal vs time (in milli-seconds)
+plot(t*1e+3,X); 
+title('Actual Signal')
+xlabel('t (ms)')
+ylabel('X(t)')
+
+figure           % plot signal vs time (in milli-seconds)
+plot(t*1e+3,S); 
+title('Ideal Signal')
+xlabel('t (ms)')
+ylabel('X(t)')
+
+%% compute DFT using Matlab FFT routines
+
+Y = fft(X);
+
+%% attempt to plot spectrum
+
+f0 = Fs/N;     % spacing in frequency is defined by om0=2*pi/T, where T=N*dt is the full time window
+om0 = 2*pi*f0; % this is fundamental angular frequency. 
+               % It is not needed, as we are going to use frequencies f
+               % measured in Hz in all plots... But just so you realize the
+               % difference!
+freq = (0:N-1)*f0;  % this is incorrect frequency interval
+
+
+figure          % this is a "blind" plot of spectrum - pay attention to the "echo" peaks at high frequencies!
+plot(freq, abs(Y)/N)
+title('Spectrum (???)')
+xlabel('f (Hz)')
+ylabel('|c|')
+
+%% correct spectrum by using fftshift
+
+freq = (-N/2:N/2-1)*f0;  % correct frequency interval should include negative frequencies
+
+figure        % this is a proper spectrum
+plot(freq, abs(fftshift(Y))/N)
+title('Spectrum')
+xlabel('f (Hz)')
+ylabel('|c|')
+
+
+%% an attempt to "clean" the signal
+
+Yclean=Y.*(abs(Y)/N>0.05);  % suppress all spectral features below a certain threshold (0.05)
+
+figure        % this is a "clean" spectrum
+plot(freq, abs(fftshift(Yclean))/N)
+title('"Clean" spectrum')
+xlabel('f (Hz)')
+ylabel('|c|')
+
+Xclean=ifft(Yclean);
+
+figure           % plot "ideal" signal vs time (in milli-seconds)
+plot(t*1e+3,Xclean); 
+title('"Clean" signal')
+xlabel('t (ms)')
+ylabel('X(t)')
+
